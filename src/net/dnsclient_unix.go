@@ -24,6 +24,7 @@ import (
 	"runtime"
 	"sync"
 	"sync/atomic"
+	"syscall"
 	"time"
 
 	"golang.org/x/net/dns/dnsmessage"
@@ -444,10 +445,16 @@ func (conf *resolverConfig) tryUpdate(name string) {
 		// below) ignores the name.
 	default:
 		var mtime time.Time
+		var inode uint64
 		if fi, err := os.Stat(name); err == nil {
 			mtime = fi.ModTime()
+			inode = 0
+			if stat, ok := fi.Sys().(*syscall.Stat_t); ok {
+				inode = uint64(stat.Ino)
+			}
 		}
-		if mtime.Equal(conf.dnsConfig.Load().mtime) {
+		cfg := conf.dnsConfig.Load()
+		if mtime.Equal(cfg.mtime) && inode == cfg.inode {
 			return
 		}
 	}

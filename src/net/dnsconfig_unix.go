@@ -12,6 +12,7 @@ import (
 	"internal/bytealg"
 	"internal/stringslite"
 	"net/netip"
+	"syscall"
 	"time"
 )
 
@@ -32,6 +33,10 @@ func dnsReadConfig(filename string) *dnsConfig {
 	defer file.close()
 	if fi, err := file.file.Stat(); err == nil {
 		conf.mtime = fi.ModTime()
+		conf.inode = 0
+		if stat, ok := fi.Sys().(*syscall.Stat_t); ok {
+			conf.inode = uint64(stat.Ino)
+		}
 	} else {
 		conf.servers = defaultNS
 		conf.search = dnsDefaultSearch()
